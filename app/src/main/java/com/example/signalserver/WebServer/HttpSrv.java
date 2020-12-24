@@ -147,6 +147,7 @@ public class HttpSrv {
             String DevNameTmp = "";
             String deviceName = "";
             String PassText = "";
+            String PassTextTmp = "";
             boolean isStream = false;
             // Читаем заголовок
             while (socket.isConnected()) {
@@ -244,7 +245,7 @@ public class HttpSrv {
                     DevNameTmp = DevNameTmp.replace("\r", "");
                     DevNameTmp = DevNameTmp.replace(" ", "");
                     DeviceIO.put(DevNameTmp, os);
-                    DevicePass.put(deviceName, PassText);
+                    DevicePass.put(deviceName, PassTextTmp);
                     DeviceSocket.put(DevNameTmp, socket);
                     DevNameTmp = "";
                     os.write(("DevName=" + DevName + "\r\n").getBytes());
@@ -289,6 +290,10 @@ public class HttpSrv {
                     if (DeviceIO.containsKey(deviceName) == true) {
                         OutputStream osDst = DeviceIO.get(deviceName);
                         String PassTextTMP = DevicePass.get(deviceName);
+                        if (PassText != PassTextTMP) {
+                            os.write(("\r\nerror pass:" + deviceName + "\r\n").getBytes());
+                            continue;
+                        }
                         osDst.write(Json.get("msg").toString().getBytes());
                         os.write(("\r\nsend:" + deviceName + "\r\n").getBytes());
                         continue;
@@ -303,6 +308,11 @@ public class HttpSrv {
                 if ((deviceName.length() > 0) && (isPost == true)) {
                     if (DeviceIO.containsKey(deviceName) == true) {
                         OutputStream osDst = DeviceIO.get(deviceName);
+                        String PassTextTMP = DevicePass.get(deviceName);
+                        if (PassText != PassTextTMP) {
+                            os.write(("\r\nerror pass:" + deviceName + "\r\n").getBytes());
+                            continue;
+                        }
                         osDst.write(POST);
                         os.write(("\r\nsend:" + deviceName).getBytes());
                         continue;
@@ -315,6 +325,11 @@ public class HttpSrv {
                 if (deviceName.length() > 0) {
                     if (DeviceIO.containsKey(deviceName) == true) {
                         OutputStream osDst = DeviceIO.get(deviceName);
+                        String PassTextTMP = DevicePass.get(deviceName);
+                        if (PassText != PassTextTMP) {
+                            os.write(("\r\nerror pass:" + deviceName + "\r\n").getBytes());
+                            continue;
+                        }
                         osDst.write(bufferRaw.toByteArray());
                         os.write(("\r\nsend:" + deviceName).getBytes());
                         continue;
