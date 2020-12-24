@@ -38,7 +38,7 @@ public class MainActivity extends AppCompatActivity {
         TextView text = (TextView) findViewById(R.id.textView);
         text.setText(ipAddress);
         // ------------------------------------------------
-        Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse("http://" + ipAddress + ":9090"));
+        Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse("http://" + ipAddress + ":8266"));
         startActivity(browserIntent);
     }
 
