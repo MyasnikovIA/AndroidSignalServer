@@ -6,6 +6,7 @@ import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.graphics.drawable.Drawable;
+import android.widget.Toast;
 
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
@@ -69,6 +70,7 @@ public class HttpSrv {
             }
         });
         myThready.start();    //Запуск потока
+        Toast.makeText(context, "Start SignalServer", Toast.LENGTH_LONG).show();
     }
 
 
@@ -77,6 +79,7 @@ public class HttpSrv {
      */
     public void Stop() {
         process = false;
+        Toast.makeText(context, "Stop SignalServer", Toast.LENGTH_LONG).show();
     }
 
     private static class SocketProcessor implements Runnable {
