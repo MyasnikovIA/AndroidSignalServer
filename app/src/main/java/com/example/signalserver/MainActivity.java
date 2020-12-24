@@ -1,4 +1,4 @@
-package com.example.webserver;
+package com.example.signalserver;
 
 import android.content.Intent;
 import android.net.Uri;
@@ -11,7 +11,7 @@ import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
 
-import com.example.webserver.WebServer.HttpSrv;
+import com.example.signalserver.WebServer.HttpSrv;
 
 public class MainActivity extends AppCompatActivity {
 

@@ -1,51 +1,26 @@
-package com.example.webserver.WebServer;
+package com.example.signalserver.WebServer;
 
-import android.content.ContentProvider;
-import android.content.ContentResolver;
-import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
-import android.content.pm.ProviderInfo;
-import android.database.Cursor;
-import android.database.sqlite.SQLiteDatabase;
-import android.database.sqlite.SQLiteOpenHelper;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.graphics.drawable.Drawable;
-import android.net.Uri;
-import android.os.Bundle;
-import android.os.Environment;
-import android.webkit.MimeTypeMap;
-
-import com.example.webserver.R;
 
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.PrintStream;
-import java.math.BigInteger;
 import java.net.InetAddress;
-import java.net.MalformedURLException;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.text.DateFormat;
 import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
-import java.util.Properties;
-import java.util.TimeZone;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.Set;
@@ -109,6 +84,7 @@ public class HttpSrv {
         private Hashtable<String, Object> Json = new Hashtable<String, Object>(10, (float) 0.5);
         private Hashtable<String, Object> JsonParam = new Hashtable<String, Object>(10, (float) 0.5);
         public static Hashtable<String, OutputStream> DeviceIO = new Hashtable<String, OutputStream>(10, (float) 0.5);
+        public static Hashtable<String, String> DevicePass = new Hashtable<String, String>(10, (float) 0.5);
         public static Hashtable<String, Socket> DeviceSocket = new Hashtable<String, Socket>(10, (float) 0.5);
 
         private Socket socket;
@@ -170,6 +146,7 @@ public class HttpSrv {
             String DevName = "";
             String DevNameTmp = "";
             String deviceName = "";
+            String PassText = "";
             boolean isStream = false;
             // Читаем заголовок
             while (socket.isConnected()) {
@@ -187,7 +164,7 @@ public class HttpSrv {
                     }
                     sbTmp.append((char) charInt);
                     if (sbTmp.toString().indexOf("\r") != -1) {
-                        if ((numLine == 0)&&(DevName.length() == 0)) {
+                        if ((numLine == 0) && (DevName.length() == 0)) {
                             DevName = sbTmp.toString();
                             DevNameTmp = DevName;
                             numLine++;
@@ -267,6 +244,7 @@ public class HttpSrv {
                     DevNameTmp = DevNameTmp.replace("\r", "");
                     DevNameTmp = DevNameTmp.replace(" ", "");
                     DeviceIO.put(DevNameTmp, os);
+                    DevicePass.put(deviceName, PassText);
                     DeviceSocket.put(DevNameTmp, socket);
                     DevNameTmp = "";
                     os.write(("DevName=" + DevName + "\r\n").getBytes());
@@ -298,6 +276,10 @@ public class HttpSrv {
                 if (Json.containsKey("device") == true) {
                     deviceName = Json.get("device").toString();
                 }
+                if ((Json.containsKey("pass") == true) && (deviceName.length() > 0)) {
+                    PassText = Json.get("pass").toString();
+                }
+
                 if (Json.containsKey("stream") == true) {
                     isStream = true;
                 }
@@ -306,6 +288,7 @@ public class HttpSrv {
                 if ((deviceName.length() > 0) && (Json.containsKey("msg") == true)) {
                     if (DeviceIO.containsKey(deviceName) == true) {
                         OutputStream osDst = DeviceIO.get(deviceName);
+                        String PassTextTMP = DevicePass.get(deviceName);
                         osDst.write(Json.get("msg").toString().getBytes());
                         os.write(("\r\nsend:" + deviceName + "\r\n").getBytes());
                         continue;
@@ -352,6 +335,7 @@ public class HttpSrv {
             DeviceIO.remove(DevName);
             return;
         }
+
         private void drawHTML(String DevNameTmp) throws IOException {
             if (DevNameTmp.indexOf("GET /run:") != -1) {
                 String packName = DevNameTmp.substring(DevNameTmp.indexOf("GET /run:") + "GET /run:".length(), DevNameTmp.length() - " HTTP/1.1".length());

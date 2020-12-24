@@ -1,4 +1,4 @@
-package com.example.webserver;
+package com.example.signalserver;
 
 import android.content.Context;
 
