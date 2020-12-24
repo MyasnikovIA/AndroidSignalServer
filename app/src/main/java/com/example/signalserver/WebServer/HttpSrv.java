@@ -291,7 +291,7 @@ public class HttpSrv {
                         OutputStream osDst = DeviceIO.get(deviceName);
                         String PassTextTMP = DevicePass.get(deviceName);
                         if (PassText != PassTextTMP) {
-                            os.write(("\r\nerror pass:" + deviceName + "\r\n").getBytes());
+                            os.write(("\r\nerror pass:" + deviceName +"  "+PassTextTMP.length()+ "\r\n").getBytes());
                             continue;
                         }
                         osDst.write(Json.get("msg").toString().getBytes());
@@ -310,7 +310,7 @@ public class HttpSrv {
                         OutputStream osDst = DeviceIO.get(deviceName);
                         String PassTextTMP = DevicePass.get(deviceName);
                         if (PassText != PassTextTMP) {
-                            os.write(("\r\nerror pass:" + deviceName + "\r\n").getBytes());
+                            os.write(("\r\nerror pass:" + deviceName +"  "+PassTextTMP.length()+ "\r\n").getBytes());
                             continue;
                         }
                         osDst.write(POST);
@@ -327,7 +327,7 @@ public class HttpSrv {
                         OutputStream osDst = DeviceIO.get(deviceName);
                         String PassTextTMP = DevicePass.get(deviceName);
                         if (PassText != PassTextTMP) {
-                            os.write(("\r\nerror pass:" + deviceName + "\r\n").getBytes());
+                            os.write(("\r\nerror pass:" + deviceName +"  "+PassTextTMP.length()+ "\r\n").getBytes());
                             continue;
                         }
                         osDst.write(bufferRaw.toByteArray());
