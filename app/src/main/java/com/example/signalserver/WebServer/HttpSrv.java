@@ -96,7 +96,7 @@ public class HttpSrv {
 
         private SocketProcessor(Socket socket) throws Throwable {
             this.socket = socket;
-            this.socket.setSoTimeout(TimeOut);
+            // this.socket.setSoTimeout(TimeOut);
             this.is = socket.getInputStream();
             this.os = socket.getOutputStream();
             Json.clear();
@@ -110,17 +110,24 @@ public class HttpSrv {
 
         public void run() {
             try {
-                PrintStream out = new PrintStream(os);
-                System.setOut(out);
-                System.setErr(out);
+                // PrintStream out = new PrintStream(os);
+                // System.setOut(out);
+                // System.setErr(out);
                 readInputHeaders();
             } catch (Throwable t) {
+                stopSocket();
             } finally {
-                try {
-                    socket.close();
-                } catch (Throwable t) {
-                    /*do nothing*/
-                }
+                stopSocket();
+            }
+        }
+
+        private void stopSocket(){
+            try {
+                socket.shutdownInput();
+                socket.shutdownOutput();
+                socket.close();
+            } catch (Throwable t) {
+                /*do nothing*/
             }
         }
 
@@ -159,7 +166,7 @@ public class HttpSrv {
                 StringBuffer sb = new StringBuffer();
                 StringBuffer sbTmp = new StringBuffer();
                 ByteArrayOutputStream bufferRaw = new ByteArrayOutputStream();
-                while ((charInt = isr.read()) > 0) {
+                while ((charInt = isr.read()) != -1) {
                     if (socket.isConnected() == false) {
                         return;
                     }
@@ -169,12 +176,19 @@ public class HttpSrv {
                     sbTmp.append((char) charInt);
                     if (sbTmp.toString().indexOf("\r") != -1) {
                         if ((numLine == 0) && (DevName.length() == 0)) {
-                            DevName = sbTmp.toString();
+                            DevName = sbTmp.toString().replace("\n", "").replace("\r", "");
                             DevNameTmp = DevName;
                             numLine++;
                             sbTmp.setLength(0);
                             continue;
                         }
+                        if ((numLine == 1) && (PassTextTmp.length() == 0)) {
+                            PassTextTmp = sbTmp.toString().replace("\n", "").replace("\r", "");
+                            numLine++;
+                            sbTmp.setLength(0);
+                            continue;
+                        }
+
                         // если в первой строке невстречается слово GET или POST, тогда отключаем соединение
                         if (sbTmp.toString().length() == 2) {
                             break; // чтение заголовка окончено
@@ -242,13 +256,16 @@ public class HttpSrv {
                     drawHTML(DevNameTmp);
                     break;
                 }
-                // запоменаем имя устройства
+                // запоменаем имя устройства/парольбьтбюьт
                 if (DevNameTmp.length() > 0) {
                     DevNameTmp = DevNameTmp.replace("\n", "");
                     DevNameTmp = DevNameTmp.replace("\r", "");
                     DevNameTmp = DevNameTmp.replace(" ", "");
+                    PassTextTmp = PassTextTmp.replace("\n", "");
+                    PassTextTmp = PassTextTmp.replace("\r", "");
+                    PassTextTmp = PassTextTmp.replace(" ", "");
                     DeviceIO.put(DevNameTmp, os);
-                    DevicePass.put(deviceName, PassTextTmp);
+                    DevicePass.put(DevNameTmp, PassTextTmp);
                     DeviceSocket.put(DevNameTmp, socket);
                     DevNameTmp = "";
                     os.write(("DevName=" + DevName + "\r\n").getBytes());
@@ -282,6 +299,9 @@ public class HttpSrv {
                 }
                 if ((Json.containsKey("pass") == true) && (deviceName.length() > 0)) {
                     PassText = Json.get("pass").toString();
+                    PassText = PassText.replace("\n", "");
+                    PassText = PassText.replace("\r", "");
+                    PassText = PassText.replace(" ", "");
                 }
 
                 if (Json.containsKey("stream") == true) {
@@ -293,13 +313,12 @@ public class HttpSrv {
                     if (DeviceIO.containsKey(deviceName) == true) {
                         OutputStream osDst = DeviceIO.get(deviceName);
                         String PassTextTMP = DevicePass.get(deviceName);
-                        if (PassText != PassTextTMP) {
-                            os.write(("\r\nerror pass:" + deviceName +"  "+PassTextTMP.length()+ "\r\n").getBytes());
+                        if (PassText.equals(PassTextTMP) == false) {
+                            os.write(("\r\nerror pass:" + deviceName + "  " + PassTextTMP.length() + "\r\n").getBytes());
                             continue;
                         }
                         osDst.write(Json.get("msg").toString().getBytes());
                         os.write(("\r\nsend:" + deviceName + "\r\n").getBytes());
-                        continue;
                     } else {
                         //DeviceIO.remove(DevName);
                         os.write(("\r\nno device\r\n").getBytes());
@@ -312,36 +331,36 @@ public class HttpSrv {
                     if (DeviceIO.containsKey(deviceName) == true) {
                         OutputStream osDst = DeviceIO.get(deviceName);
                         String PassTextTMP = DevicePass.get(deviceName);
-                        if (PassText != PassTextTMP) {
-                            os.write(("\r\nerror pass:" + deviceName +"  "+PassTextTMP.length()+ "\r\n").getBytes());
+                        if (PassText.equals(PassTextTMP) == false) {
+                            os.write(("\r\nerror pass:" + deviceName + "  " + PassTextTMP.length() + "\r\n").getBytes());
                             continue;
                         }
                         osDst.write(POST);
                         os.write(("\r\nsend:" + deviceName).getBytes());
-                        continue;
                     } else {
                         //DeviceIO.remove(DevName);
                         os.write(("\r\nno device\r\n").getBytes());
                     }
                     continue;
                 }
+
+                // [CDS]shutdownInput in read
                 if (deviceName.length() > 0) {
                     if (DeviceIO.containsKey(deviceName) == true) {
                         OutputStream osDst = DeviceIO.get(deviceName);
                         String PassTextTMP = DevicePass.get(deviceName);
-                        if (PassText != PassTextTMP) {
-                            os.write(("\r\nerror pass:" + deviceName +"  "+PassTextTMP.length()+ "\r\n").getBytes());
+                        if (PassText.equals(PassTextTMP) == false) {
+                            os.write(("\r\nerror pass:" + deviceName + "  " + PassTextTMP.length() + "\r\n").getBytes());
                             continue;
                         }
                         osDst.write(bufferRaw.toByteArray());
                         os.write(("\r\nsend:" + deviceName).getBytes());
-                        continue;
                     } else {
                         //DeviceIO.remove(DevName);
                         os.write(("\r\nno device\r\n").getBytes());
                     }
+                    continue;
                 }
-
                 // os.write(("ok\r\n").getBytes());
                 // os.write((Json.toString() + "\r\n").getBytes());
                 // os.write((Json.toString().length() + "\r\n").getBytes());
@@ -349,7 +368,7 @@ public class HttpSrv {
             }
             is.close();
             os.close();
-            socket.close();
+            stopSocket();
             DeviceIO.remove(DevName);
             return;
         }

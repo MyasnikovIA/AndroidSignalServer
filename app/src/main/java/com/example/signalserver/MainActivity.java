@@ -25,24 +25,25 @@ public class MainActivity extends AppCompatActivity {
         TextView text = (TextView) findViewById(R.id.textView);
 
         // Разблокировать экран
-            KeyguardManager keyguardManager = (KeyguardManager) getSystemService(Activity.KEYGUARD_SERVICE);
-            KeyguardManager.KeyguardLock lock = keyguardManager.newKeyguardLock(KEYGUARD_SERVICE);
-            lock.disableKeyguard();
+        KeyguardManager keyguardManager = (KeyguardManager) getSystemService(Activity.KEYGUARD_SERVICE);
+        KeyguardManager.KeyguardLock lock = keyguardManager.newKeyguardLock(KEYGUARD_SERVICE);
+        lock.disableKeyguard();
         // ---------------------
         boolean onConnect = false;
         String ipAddress = "";
+
+        // Подключение к WIFI точке деоступа
         WifiConfiguration wifiConfig = new WifiConfiguration();
         WifiManager wifiManager = (WifiManager) getApplicationContext().getSystemService(WIFI_SERVICE);
+        // wifiConfig.SSID = String.format("\"%s\"", "a616mm");
         wifiConfig.SSID = String.format("\"%s\"", "ELTEX-87A2"); // Имя WIFI точки доступа
-        wifiConfig.preSharedKey = String.format("\"%s\"", "XXXXXXXXX"); // Пароль для полдключения к точки доступа
+        wifiConfig.preSharedKey = String.format("\"%s\"", "XXXXXXXXXXXX"); // Пароль для полдключения к точки доступа
         wifiManager.disconnect();
         int netId = wifiManager.addNetwork(wifiConfig);
         wifiManager.enableNetwork(netId, true);
         wifiManager.reconnect();
+        // ------------------------------------------
         while (onConnect == false) {
-            // Подключение к WIFI точке деоступа
-            // wifiConfig.SSID = String.format("\"%s\"", "a616mm");
-            // ------------------------------------------
             WifiInfo info = wifiManager.getConnectionInfo();
             int ip = info.getIpAddress();
             if (ip != 0) {
@@ -56,13 +57,12 @@ public class MainActivity extends AppCompatActivity {
             } else {
                 text.append("\n.");
             }
-            pause(3000);
+            pause(3000); // пауза 3 секунды
         }
-
-
-        HttpSrv web =new HttpSrv(getApplicationContext());
+        HttpSrv web = new HttpSrv(getApplicationContext());
         web.Start("8266");
     }
+
     public static void pause(int ms) {
         try {
             Thread.sleep(ms);
