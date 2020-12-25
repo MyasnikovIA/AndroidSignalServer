@@ -37,7 +37,7 @@ public class MainActivity extends AppCompatActivity {
         WifiManager wifiManager = (WifiManager) getApplicationContext().getSystemService(WIFI_SERVICE);
         // wifiConfig.SSID = String.format("\"%s\"", "a616mm");
         wifiConfig.SSID = String.format("\"%s\"", "ELTEX-87A2"); // Имя WIFI точки доступа
-        wifiConfig.preSharedKey = String.format("\"%s\"", "XXXXXXXXXXXX"); // Пароль для полдключения к точки доступа
+        wifiConfig.preSharedKey = String.format("\"%s\"", "XXXXXX"); // Пароль для полдключения к точки доступа
         wifiManager.disconnect();
         int netId = wifiManager.addNetwork(wifiConfig);
         wifiManager.enableNetwork(netId, true);

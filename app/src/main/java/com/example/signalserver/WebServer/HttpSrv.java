@@ -1,20 +1,27 @@
 package com.example.signalserver.WebServer;
 
+import android.Manifest;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.graphics.drawable.Drawable;
+import android.os.PowerManager;
 import android.widget.Toast;
+
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.io.OutputStreamWriter;
 import java.io.PrintStream;
 import java.net.InetAddress;
 import java.net.ServerSocket;
@@ -121,7 +128,7 @@ public class HttpSrv {
             }
         }
 
-        private void stopSocket(){
+        private void stopSocket() {
             try {
                 socket.shutdownInput();
                 socket.shutdownOutput();
@@ -289,6 +296,12 @@ public class HttpSrv {
                     continue;
                 }
 
+                if (Json.toString().indexOf("{reboot=reboot}") != -1) {
+                    os.write(("Kill connect SignalServer \r\n").getBytes());
+                    rebootDevice();
+                    continue;
+                }
+
                 // получить список подключенных устройств
                 if (Json.toString().indexOf("{exit=exit}") != -1) {
                     break;
@@ -368,10 +381,32 @@ public class HttpSrv {
             }
             is.close();
             os.close();
+
             stopSocket();
             DeviceIO.remove(DevName);
             return;
         }
+        public static void rebootDevice() {
+            Set<String> keys = DeviceIO.keySet();
+            for (String key : keys) {
+                OutputStream osDst = DeviceIO.get(key);
+                Socket soc = DeviceSocket.get(key);
+                if (soc.isConnected()){
+                    try {
+                        osDst.write(" Kill connect \r\n".getBytes());
+                        soc.shutdownInput();
+                        soc.shutdownOutput();
+                        soc.close();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+                DeviceIO.remove(key);
+                DevicePass.remove(key);
+                DeviceSocket.remove(key);
+            }
+        }
+
 
         private void drawHTML(String DevNameTmp) throws IOException {
             if (DevNameTmp.indexOf("GET /run:") != -1) {
