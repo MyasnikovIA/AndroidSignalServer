@@ -2,7 +2,7 @@
 Сервер для установки на белый IP адрес, чтобы передавать сообщения между  устройствами,  подключенных к серым IP адресам.
 <br/>Комутатор 
 Проект разрабатывался для использования  строго андроид телефона с разбитым сенсорным экраном
- <img src="https://github.com/MyasnikovIA/AndroidSignalServer/img/blob/master/logo.png?raw=true"/>
+ <img src="https://raw.githubusercontent.com/MyasnikovIA/AndroidSignalServer/main/img/tel.png?raw=true"/>
  
 ------- Send byt[] -----
 <pre>
