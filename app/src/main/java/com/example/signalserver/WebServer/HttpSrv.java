@@ -271,6 +271,7 @@ public class HttpSrv {
                     PassTextTmp = PassTextTmp.replace("\n", "");
                     PassTextTmp = PassTextTmp.replace("\r", "");
                     PassTextTmp = PassTextTmp.replace(" ", "");
+                    rebootOneDevice(DevNameTmp);
                     DeviceIO.put(DevNameTmp, os);
                     DevicePass.put(DevNameTmp, PassTextTmp);
                     DeviceSocket.put(DevNameTmp, socket);
@@ -386,12 +387,13 @@ public class HttpSrv {
             DeviceIO.remove(DevName);
             return;
         }
+
         public static void rebootDevice() {
             Set<String> keys = DeviceIO.keySet();
             for (String key : keys) {
                 OutputStream osDst = DeviceIO.get(key);
                 Socket soc = DeviceSocket.get(key);
-                if (soc.isConnected()){
+                if (soc.isConnected()) {
                     try {
                         osDst.write(" Kill connect \r\n".getBytes());
                         soc.shutdownInput();
@@ -404,6 +406,29 @@ public class HttpSrv {
                 DeviceIO.remove(key);
                 DevicePass.remove(key);
                 DeviceSocket.remove(key);
+            }
+        }
+
+        public static void rebootOneDevice(String DevName) {
+            Set<String> keys = DeviceIO.keySet();
+            for (String key : keys) {
+                if (key.equals(DevName) == true) {
+                    OutputStream osDst = DeviceIO.get(key);
+                    Socket soc = DeviceSocket.get(key);
+                    if (soc.isConnected()) {
+                        try {
+                            osDst.write(" Kill connect \r\n".getBytes());
+                            soc.shutdownInput();
+                            soc.shutdownOutput();
+                            soc.close();
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                    DeviceIO.remove(key);
+                    DevicePass.remove(key);
+                    DeviceSocket.remove(key);
+                }
             }
         }
 
