@@ -31,6 +31,7 @@ import java.io.PrintStream;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.URLDecoder;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Hashtable;
@@ -39,6 +40,8 @@ import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.Set;
+
+import static java.net.URLEncoder.encode;
 
 /**
  * Created by myasnikov on 14.01.16.
@@ -494,73 +497,99 @@ public class HttpSrv {
 
 
         private void drawHTML(String DevNameTmp) throws IOException {
+            JSONObject json = new JSONObject();
+
             if (DevNameTmp.indexOf("GET /run:") != -1) {
                 String packName = DevNameTmp.substring(DevNameTmp.indexOf("GET /run:") + "GET /run:".length(), DevNameTmp.length() - " HTTP/1.1".length());
+                os.write("HTTP/1.1 200 OK\r\n".getBytes());
+                os.write("Content-Type: application/json; charset=utf-8\r\n".getBytes());
+                os.write("Connection: close\r\n".getBytes());
+                os.write("Server: HTMLserver\r\n".getBytes());
+                os.write("\r\n".getBytes());
+                packName = URLDecoder.decode(packName, "UTF-8");
+                packageManager = context.getPackageManager();
+                List<ApplicationInfo> listApp = packageManager.getInstalledApplications(PackageManager.GET_META_DATA);
+                for (ApplicationInfo appInf : listApp) {
+                    String packTxt = appInf.loadLabel(packageManager).toString();
+                    if (packTxt.equals(packName)) {
+                        packName = appInf.packageName.toString();
+                        break;
+                    }
+                }
+                os.write(("{\"run\":\"" + packName + "\"}").getBytes());
+                Intent launchIntent = context.getPackageManager().getLaunchIntentForPackage(packName);
+                if (launchIntent != null) {
+                    context.startActivity(launchIntent);//null pointer check in case package name was not found
+                }
+                return;
+            }
+
+            /// показать список установленых программ
+            if (DevNameTmp.indexOf("GET /app.json") != -1) {
+                try {
+                    os.write("HTTP/1.1 200 OK\r\n".getBytes());
+                    // os.write("Content-Type: text/plain; charset=utf-8\r\n".getBytes());
+                    os.write("Content-Type: application/json; charset=utf-8\r\n".getBytes());
+                    os.write("Connection: close\r\n".getBytes());
+                    os.write("Server: HTMLserver\r\n".getBytes());
+                    os.write("\r\n".getBytes());
+                    os.flush();
+                    JSONArray appInfoArr = new JSONArray();
+                    packageManager = context.getPackageManager();
+                    List<ApplicationInfo> listApp = packageManager.getInstalledApplications(PackageManager.GET_META_DATA);
+                    for (ApplicationInfo appInf : listApp) {
+                        try {
+                            JSONObject jsonApp = new JSONObject();
+                            PackageInfo info = packageManager.getPackageInfo(appInf.packageName, 0);
+                            jsonApp.put("packageName", appInf.packageName.toString());
+                            jsonApp.put("loadLabel", appInf.loadLabel(packageManager));
+                            jsonApp.put("Last_update_time", info.lastUpdateTime);
+                            // Drawable appIcon = context.getPackageManager().getApplicationIcon(app.packageName);
+                            appInfoArr.put(jsonApp);
+                        } catch (PackageManager.NameNotFoundException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                    json.put("app", appInfoArr);
+                } catch (JSONException e) {
+                    os.write("-ERROR-\r\n".getBytes());
+                }
+                os.write((json + "").getBytes());
+                return;
+            }
+
+            // список подключенных устройств
+            if (DevNameTmp.indexOf("GET /device.json") != -1) {
+                // показать список подключенных устройств
                 os.write("HTTP/1.1 200 OK\r\n".getBytes());
                 // os.write("Content-Type: text/plain; charset=utf-8\r\n".getBytes());
                 os.write("Content-Type: application/json; charset=utf-8\r\n".getBytes());
                 os.write("Connection: close\r\n".getBytes());
                 os.write("Server: HTMLserver\r\n".getBytes());
                 os.write("\r\n".getBytes());
-                os.write(("run:" + packName).getBytes());
+                os.flush();
                 try {
-                    Intent launchIntent = context.getPackageManager().getLaunchIntentForPackage(packName);
-                    if (launchIntent != null) {
-                        context.startActivity(launchIntent);//null pointer check in case package name was not found
+                    JSONArray jsonAr = new JSONArray();
+                    for (Object key : DeviceIO.keySet()) {
+                        JSONObject jsonDev = new JSONObject();
+                        jsonDev.put("devname", key.toString());
+                        jsonDev.put("routerip", DeviceRouterIp.get(key));
+                        Socket soc = DeviceSocket.get(key);
+                        jsonDev.put("isConnected", soc.isClosed());
+                        jsonAr.put(jsonDev);
                     }
-                } catch (Exception e) {
-                    os.write(("\r\nError:" + e.toString()).getBytes());
+                    json.put("device", jsonAr);
+                    //-----------------------------------------------------
+                    TelephonyManager telephonyManager = (TelephonyManager) context.getSystemService(context.TELEPHONY_SERVICE);
+                    String devicIMEI = telephonyManager.getDeviceId();
+                    json.put("devicIMEI", devicIMEI);
+                } catch (JSONException e) {
+                    os.write("-ERROR-\r\n".getBytes());
                 }
-                return;
+                os.write((json + "").getBytes());
             }
 
-            os.write("HTTP/1.1 200 OK\r\n".getBytes());
-            // os.write("Content-Type: text/plain; charset=utf-8\r\n".getBytes());
-            os.write("Content-Type: application/json; charset=utf-8\r\n".getBytes());
-            os.write("Connection: close\r\n".getBytes());
-            os.write("Server: HTMLserver\r\n".getBytes());
-            os.write("\r\n".getBytes());
-            os.flush();
-            JSONObject json = new JSONObject();
-            try {
-                JSONArray jsonAr = new JSONArray();
-                for (Object key : DeviceIO.keySet()) {
-                    JSONObject jsonDev = new JSONObject();
-                    jsonDev.put("devname", key.toString());
-                    jsonDev.put("routerip", DeviceRouterIp.get(key));
-                    Socket soc = DeviceSocket.get(key);
-                    jsonDev.put("isConnected", soc.isClosed());
-                    jsonAr.put(jsonDev);
-                }
-                json.put("device", jsonAr);
-                //-----------------------------------------------------
-                /*
-                JSONArray appInfoArr = new JSONArray();
-                packageManager = context.getPackageManager();
-                List<ApplicationInfo> listApp = packageManager.getInstalledApplications(PackageManager.GET_META_DATA);
-                for (ApplicationInfo appInf : listApp) {
-                    try {
-                        JSONObject jsonApp = new JSONObject();
-                        PackageInfo info = packageManager.getPackageInfo(appInf.packageName, 0);
-                        jsonApp.put("packageName", appInf.packageName.toString());
-                        jsonApp.put("loadLabel", info.sharedUserLabel);
-                        jsonApp.put("Last_update_time", info.lastUpdateTime);
-                        // Drawable appIcon = context.getPackageManager().getApplicationIcon(app.packageName);
-                        appInfoArr.put(jsonApp);
-                    } catch (PackageManager.NameNotFoundException e) {
-                        e.printStackTrace();
-                    }
-                }
-                json.put("app", appInfoArr);
-                 */
-                //-----------------------------------------------------
-                TelephonyManager telephonyManager = (TelephonyManager) context.getSystemService(context.TELEPHONY_SERVICE);
-                String devicIMEI = telephonyManager.getDeviceId();
-                json.put("devicIMEI", devicIMEI);
-            } catch (JSONException e) {
-                os.write("-ERROR-\r\n".getBytes());
-            }
-            os.write((json + "").getBytes());
+
         }
     }
 }
