@@ -8,10 +8,15 @@ import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.graphics.drawable.Drawable;
 import android.os.PowerManager;
+import android.telephony.TelephonyManager;
 import android.widget.Toast;
 
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
@@ -27,8 +32,10 @@ import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.Set;
@@ -94,6 +101,7 @@ public class HttpSrv {
         private Hashtable<String, Object> Json = new Hashtable<String, Object>(10, (float) 0.5);
         private Hashtable<String, Object> JsonParam = new Hashtable<String, Object>(10, (float) 0.5);
         public static Hashtable<String, OutputStream> DeviceIO = new Hashtable<String, OutputStream>(10, (float) 0.5);
+        public static Hashtable<String, String> DeviceRouterIp = new Hashtable<String, String>(10, (float) 0.5);
         public static Hashtable<String, String> DevicePass = new Hashtable<String, String>(10, (float) 0.5);
         public static Hashtable<String, Socket> DeviceSocket = new Hashtable<String, Socket>(10, (float) 0.5);
 
@@ -165,7 +173,9 @@ public class HttpSrv {
             String deviceName = "";
             String PassText = "";
             String PassTextTmp = "";
+            String RouterIpTmp = "";
             boolean isStream = false;
+            rebootOffLineDevice();
             // Читаем заголовок
             while (socket.isConnected()) {
                 Json.clear();
@@ -191,6 +201,12 @@ public class HttpSrv {
                         }
                         if ((numLine == 1) && (PassTextTmp.length() == 0)) {
                             PassTextTmp = sbTmp.toString().replace("\n", "").replace("\r", "");
+                            numLine++;
+                            sbTmp.setLength(0);
+                            continue;
+                        }
+                        if ((numLine == 2) && (RouterIpTmp.length() == 0)) {
+                            RouterIpTmp = sbTmp.toString().replace("\n", "").replace("\r", "");
                             numLine++;
                             sbTmp.setLength(0);
                             continue;
@@ -271,12 +287,17 @@ public class HttpSrv {
                     PassTextTmp = PassTextTmp.replace("\n", "");
                     PassTextTmp = PassTextTmp.replace("\r", "");
                     PassTextTmp = PassTextTmp.replace(" ", "");
+                    RouterIpTmp = RouterIpTmp.replace("\n", "");
+                    RouterIpTmp = RouterIpTmp.replace("\r", "");
+                    RouterIpTmp = RouterIpTmp.replace(" ", "");
                     rebootOneDevice(DevNameTmp);
                     DeviceIO.put(DevNameTmp, os);
                     DevicePass.put(DevNameTmp, PassTextTmp);
                     DeviceSocket.put(DevNameTmp, socket);
+                    DeviceRouterIp.put(DevNameTmp, RouterIpTmp);
                     DevNameTmp = "";
                     os.write(("DevName=" + DevName + "\r\n").getBytes());
+                    os.write(("RouterIpTmp=" + RouterIpTmp + "\r\n").getBytes());
                     continue;
                 }
 
@@ -299,7 +320,7 @@ public class HttpSrv {
 
                 if (Json.toString().indexOf("{reboot=reboot}") != -1) {
                     os.write(("Kill connect SignalServer \r\n").getBytes());
-                    rebootDevice();
+                    rebootDevice(DevName);
                     continue;
                 }
 
@@ -320,6 +341,9 @@ public class HttpSrv {
 
                 if (Json.containsKey("stream") == true) {
                     isStream = true;
+                }
+                if ((deviceName.length() > 0) && (Json.containsKey("routerip") == true)) {
+                    DeviceRouterIp.put(deviceName, Json.get("routerip").toString());
                 }
 
                 // отправляем сообщение другому устройству текст
@@ -382,15 +406,21 @@ public class HttpSrv {
             }
             is.close();
             os.close();
-
             stopSocket();
+
             DeviceIO.remove(DevName);
+            DevicePass.remove(DevName);
+            DeviceSocket.remove(DevName);
+
             return;
         }
 
-        public static void rebootDevice() {
+        public void rebootDevice(String deviceName) {
             Set<String> keys = DeviceIO.keySet();
             for (String key : keys) {
+                if (deviceName == key) {
+                    continue;
+                }
                 OutputStream osDst = DeviceIO.get(key);
                 Socket soc = DeviceSocket.get(key);
                 if (soc.isConnected()) {
@@ -406,6 +436,36 @@ public class HttpSrv {
                 DeviceIO.remove(key);
                 DevicePass.remove(key);
                 DeviceSocket.remove(key);
+            }
+
+            if (deviceName.length() > 0) {
+                OutputStream osDst = DeviceIO.get(deviceName);
+                Socket soc = DeviceSocket.get(deviceName);
+                if (soc.isConnected()) {
+                    try {
+                        osDst.write(" Kill connect \r\n".getBytes());
+                        soc.shutdownInput();
+                        soc.shutdownOutput();
+                        soc.close();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+                DeviceIO.remove(deviceName);
+                DevicePass.remove(deviceName);
+                DeviceSocket.remove(deviceName);
+            }
+        }
+
+        public void rebootOffLineDevice() {
+            Set<String> keys = DeviceSocket.keySet();
+            for (String key : keys) {
+                Socket soc = DeviceSocket.get(key);
+                if (soc.isConnected() == false) {
+                    DeviceIO.remove(key);
+                    DevicePass.remove(key);
+                    DeviceSocket.remove(key);
+                }
             }
         }
 
@@ -437,10 +497,11 @@ public class HttpSrv {
             if (DevNameTmp.indexOf("GET /run:") != -1) {
                 String packName = DevNameTmp.substring(DevNameTmp.indexOf("GET /run:") + "GET /run:".length(), DevNameTmp.length() - " HTTP/1.1".length());
                 os.write("HTTP/1.1 200 OK\r\n".getBytes());
-                os.write("Content-Type: text/plain; charset=utf-8\r\n".getBytes());
+                // os.write("Content-Type: text/plain; charset=utf-8\r\n".getBytes());
+                os.write("Content-Type: application/json; charset=utf-8\r\n".getBytes());
                 os.write("Connection: close\r\n".getBytes());
                 os.write("Server: HTMLserver\r\n".getBytes());
-                os.write("\r\n\r\n".getBytes());
+                os.write("\r\n".getBytes());
                 os.write(("run:" + packName).getBytes());
                 try {
                     Intent launchIntent = context.getPackageManager().getLaunchIntentForPackage(packName);
@@ -452,62 +513,55 @@ public class HttpSrv {
                 }
                 return;
             }
+
             os.write("HTTP/1.1 200 OK\r\n".getBytes());
-            os.write("Content-Type: text/plain; charset=utf-8\r\n".getBytes());
+            // os.write("Content-Type: text/plain; charset=utf-8\r\n".getBytes());
+            os.write("Content-Type: application/json; charset=utf-8\r\n".getBytes());
             os.write("Connection: close\r\n".getBytes());
             os.write("Server: HTMLserver\r\n".getBytes());
-            os.write("\r\n\r\n".getBytes());
+            os.write("\r\n".getBytes());
             os.flush();
-            os.write(("Signal server work" + "\r\n").getBytes());
-            os.write(("------- Send byt[] -----" + "\r\n").getBytes());
-            os.write(("device:dev1" + "\r\n").getBytes());
-            os.write(("len:5" + "\r\n").getBytes());
-            os.write(("" + "\r\n").getBytes());
-            os.write(("12345" + "\r\n").getBytes());
-            os.write(("------ Send text -------" + "\r\n").getBytes());
-            os.write(("device:dev1" + "\r\n").getBytes());
-            os.write(("msg:12345" + "\r\n").getBytes());
-            os.write(("------ List device -----" + "\r\n").getBytes());
-            os.write(("list" + "\r\n").getBytes());
-            os.write(("------------------------" + "\r\n").getBytes());
-            Set<String> keys = DeviceIO.keySet();
-            for (String key : keys) {
-                os.write((key + "  (" + key.length() + " ").getBytes());
-                if (DeviceSocket.get(key).isConnected()) {
-                    os.write((" connect ").getBytes());
-                } else {
-                    os.write((" disconnect ").getBytes());
-                    // DeviceIO.remove(key);
-                    // DeviceSocket.remove(key);
+            JSONObject json = new JSONObject();
+            try {
+                JSONArray jsonAr = new JSONArray();
+                for (Object key : DeviceIO.keySet()) {
+                    JSONObject jsonDev = new JSONObject();
+                    jsonDev.put("devname", key.toString());
+                    jsonDev.put("routerip", DeviceRouterIp.get(key));
+                    Socket soc = DeviceSocket.get(key);
+                    jsonDev.put("isConnected", soc.isClosed());
+                    jsonAr.put(jsonDev);
                 }
-                os.write((")\r\n").getBytes());
-            }
-            os.write(("=======Query=======" + "\r\n").getBytes());
-            os.write((DevNameTmp + "\r\n").getBytes());
-            os.write(("=======Query=======" + "\r\n").getBytes());
-            os.write(POST);
-            os.write(("\r\n").getBytes());
-            os.write(("=======APP=======" + "\r\n").getBytes());
-            packageManager = context.getPackageManager();
-            List<ApplicationInfo> list = packageManager.getInstalledApplications(PackageManager.GET_META_DATA);
-            for (ApplicationInfo app : list) {
-                try {
-                    PackageInfo info = packageManager.getPackageInfo(app.packageName, 0);
-                    os.write(("\r\n\n===========").getBytes());
-                    os.write(("\r\n packageName:" + app.packageName.toString()).getBytes());
-                    os.write(("\r\n packageName:" + app.packageName.toString()).getBytes());
-                    os.write(("\r\n loadLabel: " + app.loadLabel(packageManager)).getBytes());
-                    os.write(("\r\n Install time: " + info.firstInstallTime).getBytes());
-                    os.write(("\r\n Last update time: " + info.lastUpdateTime).getBytes());
-                    os.write(("\r\n===========").getBytes());
-                    Drawable appIcon = context.getPackageManager().getApplicationIcon(app.packageName);
-                } catch (PackageManager.NameNotFoundException e) {
-                    e.printStackTrace();
+                json.put("device", jsonAr);
+                //-----------------------------------------------------
+                /*
+                JSONArray appInfoArr = new JSONArray();
+                packageManager = context.getPackageManager();
+                List<ApplicationInfo> listApp = packageManager.getInstalledApplications(PackageManager.GET_META_DATA);
+                for (ApplicationInfo appInf : listApp) {
+                    try {
+                        JSONObject jsonApp = new JSONObject();
+                        PackageInfo info = packageManager.getPackageInfo(appInf.packageName, 0);
+                        jsonApp.put("packageName", appInf.packageName.toString());
+                        jsonApp.put("loadLabel", info.sharedUserLabel);
+                        jsonApp.put("Last_update_time", info.lastUpdateTime);
+                        // Drawable appIcon = context.getPackageManager().getApplicationIcon(app.packageName);
+                        appInfoArr.put(jsonApp);
+                    } catch (PackageManager.NameNotFoundException e) {
+                        e.printStackTrace();
+                    }
                 }
+                json.put("app", appInfoArr);
+                 */
+                //-----------------------------------------------------
+                TelephonyManager telephonyManager = (TelephonyManager) context.getSystemService(context.TELEPHONY_SERVICE);
+                String devicIMEI = telephonyManager.getDeviceId();
+                json.put("devicIMEI", devicIMEI);
+            } catch (JSONException e) {
+                os.write("-ERROR-\r\n".getBytes());
             }
-            os.write(("=======APP=======" + "\r\n").getBytes());
+            os.write((json + "").getBytes());
         }
-
     }
 }
 
