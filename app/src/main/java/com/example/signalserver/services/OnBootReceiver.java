@@ -11,12 +11,12 @@ public class OnBootReceiver extends BroadcastReceiver {
     @Override
     public void onReceive(Context context, Intent intent) {
         if (Intent.ACTION_BOOT_COMPLETED.equals(intent.getAction())) {
-            //  запуск при перезагрузки
-            // https://codinginflow.com/tutorials/android/start-app-on-boot
-            Intent i = new Intent(context, MainActivity.class);
-            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            context.startActivity(i);
-            Toast.makeText(context, "Boot Completed", Toast.LENGTH_SHORT).show();
+            //  запуск сервиса
+            context.startService(new Intent(context, ServiceExample.class));
+            //  Intent i = new Intent(context, MainActivity.class);
+            //  i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            //  context.startActivity(i);
+            //  Toast.makeText(context, "Boot Completed", Toast.LENGTH_SHORT).show();
         }
     }
 

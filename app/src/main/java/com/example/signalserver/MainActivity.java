@@ -15,6 +15,7 @@ import android.widget.TextView;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.signalserver.WebServer.HttpSrv;
+import com.example.signalserver.services.ServiceExample;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -28,6 +29,7 @@ public class MainActivity extends AppCompatActivity {
         KeyguardManager keyguardManager = (KeyguardManager) getSystemService(Activity.KEYGUARD_SERVICE);
         KeyguardManager.KeyguardLock lock = keyguardManager.newKeyguardLock(KEYGUARD_SERVICE);
         lock.disableKeyguard();
+         /*
         // ---------------------
         boolean onConnect = false;
         String ipAddress = "";
@@ -37,9 +39,9 @@ public class MainActivity extends AppCompatActivity {
         WifiManager wifiManager = (WifiManager) getApplicationContext().getSystemService(WIFI_SERVICE);
         // wifiConfig.SSID = String.format("\"%s\"", "a616mm");
         // wifiConfig.SSID = String.format("\"%s\"", "ELTEX-87A2"); // Имя WIFI точки доступа
-        // wifiConfig.preSharedKey = String.format("\"%s\"", "XXXXXX"); // Пароль для полдключения к точки доступа
+        // wifiConfig.preSharedKey = String.format("\"%s\"", "GP08004568"); // Пароль для полдключения к точки доступа
         wifiConfig.SSID = String.format("\"%s\"", "RT-GPON-3AD2"); // Имя WIFI точки доступа
-        wifiConfig.preSharedKey = String.format("\"%s\"", "XXXXXXX"); // Пароль для полдключения к точки доступа
+        wifiConfig.preSharedKey = String.format("\"%s\"", "6CXAY6MW"); // Пароль для полдключения к точки доступа
 
         wifiManager.disconnect();
         int netId = wifiManager.addNetwork(wifiConfig);
@@ -62,8 +64,10 @@ public class MainActivity extends AppCompatActivity {
             }
             pause(3000); // пауза 3 секунды
         }
-        HttpSrv web = new HttpSrv(getApplicationContext());
-        web.Start("8266");
+        //  HttpSrv web = new HttpSrv(getApplicationContext());
+        //  web.Start("8266");
+        */
+        getApplicationContext().startService(new Intent(getApplicationContext(), ServiceExample.class));
     }
 
     public static void pause(int ms) {

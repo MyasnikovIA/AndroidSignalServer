@@ -587,9 +587,25 @@ public class HttpSrv {
                     os.write("-ERROR-\r\n".getBytes());
                 }
                 os.write((json + "").getBytes());
+                return;
             }
 
-
+            os.write("HTTP/1.1 200 OK\r\n".getBytes());
+            os.write("Content-Type: text/html; charset=utf-8\r\n".getBytes());
+            os.write("Connection: close\r\n".getBytes());
+            os.write("Server: HTMLserver\r\n".getBytes());
+            os.write("\r\n".getBytes());
+            os.flush();
+            os.write(("<br/><a  target=\"_blank\"  href=\"device.json\">Device</a> ").getBytes());
+            os.write(("<br/><a  target=\"_blank\"  href=\"app.json\">AppList</a> ").getBytes());
+            os.write(("<br/><hr/>").getBytes());
+            packageManager = context.getPackageManager();
+            List<ApplicationInfo> listApp = packageManager.getInstalledApplications(PackageManager.GET_META_DATA);
+            for (ApplicationInfo appInf : listApp) {
+                 String packTxt = appInf.loadLabel(packageManager).toString();
+                  String packName = appInf.packageName.toString();
+                  os.write(("<br/><a  target=\"_blank\"  href=\"/run:"+packName+"\">"+packTxt+"</a> ").getBytes());
+            }
         }
     }
 }

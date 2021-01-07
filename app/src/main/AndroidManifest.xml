@@ -22,7 +22,11 @@
 
 
 
+
         <!-- Регистрация файла сервиса в системе -->
+        <service
+            android:enabled="true"
+            android:name=".services.ServiceExample"/>
         <!-- =================================== -->
 
 
