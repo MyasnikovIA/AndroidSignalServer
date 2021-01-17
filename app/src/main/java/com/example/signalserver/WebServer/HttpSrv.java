@@ -377,7 +377,7 @@ public class HttpSrv {
                             continue;
                         }
                         osDst.write(POST);
-                        os.write(("\r\nsend:" + deviceName).getBytes());
+                        os.write(("\r\nsend:" + deviceName + "\r\n").getBytes());
                     } else {
                         //DeviceIO.remove(DevName);
                         os.write(("\r\nno device\r\n").getBytes());
@@ -395,7 +395,7 @@ public class HttpSrv {
                             continue;
                         }
                         osDst.write(bufferRaw.toByteArray());
-                        os.write(("\r\nsend:" + deviceName).getBytes());
+                        os.write(("\r\nsend:" + deviceName + "\r\n").getBytes());
                     } else {
                         //DeviceIO.remove(DevName);
                         os.write(("\r\nno device\r\n").getBytes());

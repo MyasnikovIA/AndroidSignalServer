@@ -29,7 +29,7 @@ public class MainActivity extends AppCompatActivity {
         KeyguardManager keyguardManager = (KeyguardManager) getSystemService(Activity.KEYGUARD_SERVICE);
         KeyguardManager.KeyguardLock lock = keyguardManager.newKeyguardLock(KEYGUARD_SERVICE);
         lock.disableKeyguard();
-         /*
+
         // ---------------------
         boolean onConnect = false;
         String ipAddress = "";
@@ -38,11 +38,8 @@ public class MainActivity extends AppCompatActivity {
         WifiConfiguration wifiConfig = new WifiConfiguration();
         WifiManager wifiManager = (WifiManager) getApplicationContext().getSystemService(WIFI_SERVICE);
         // wifiConfig.SSID = String.format("\"%s\"", "a616mm");
-        // wifiConfig.SSID = String.format("\"%s\"", "ELTEX-87A2"); // Имя WIFI точки доступа
-        // wifiConfig.preSharedKey = String.format("\"%s\"", "GP08004568"); // Пароль для полдключения к точки доступа
-        wifiConfig.SSID = String.format("\"%s\"", "RT-GPON-3AD2"); // Имя WIFI точки доступа
-        wifiConfig.preSharedKey = String.format("\"%s\"", "6CXAY6MW"); // Пароль для полдключения к точки доступа
-
+        wifiConfig.SSID = String.format("\"%s\"", "ELTEX-87A2"); // Имя WIFI точки доступа
+        wifiConfig.preSharedKey = String.format("\"%s\"", "XXXXXXXXXX"); // Пароль для полдключения к точки доступа
         wifiManager.disconnect();
         int netId = wifiManager.addNetwork(wifiConfig);
         wifiManager.enableNetwork(netId, true);
@@ -64,10 +61,9 @@ public class MainActivity extends AppCompatActivity {
             }
             pause(3000); // пауза 3 секунды
         }
-        //  HttpSrv web = new HttpSrv(getApplicationContext());
-        //  web.Start("8266");
-        */
-        getApplicationContext().startService(new Intent(getApplicationContext(), ServiceExample.class));
+        HttpSrv web = new HttpSrv(getApplicationContext());
+        web.Start("8266");
+        // getApplicationContext().startService(new Intent(getApplicationContext(), ServiceExample.class));
     }
 
     public static void pause(int ms) {

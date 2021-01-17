@@ -84,4 +84,4 @@
 
     <uses-permission android:name="android.permission.REQUEST_DELETE_PACKAGES" />
 
-</manifest>
+    </manifest>
