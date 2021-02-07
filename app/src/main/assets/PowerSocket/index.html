@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>PowerSocket</title>
+    <script>
+       var request = new XMLHttpRequest();
+	   var esp8266 = function(cmd) {
+   	       request.open('GET','/cmd:'+cmd,false);
+   	       request.send();
+           if (request.status == 200) {
+             return request.response;
+           } else {
+             return `Ошибка ${request.status}: ${request.statusText}`;
+           }
+      }
+      var tmp = "";
+      var esp8266List = function(cmd) {
+   	       request.open('POST','/cmd:',false);
+   	       request.send(cmd);
+           if (request.status == 200) {
+             return request.response;
+           } else {
+             return `Ошибка ${request.status}: ${request.statusText}`;
+           }
+      }
+    </script>
+
+</head>
+<body>
+    <hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/>
+    <a  target="_blank" href='http://212.164.223.134:8266/device.json'>device</a>
+    <button onclick="alert( esp8266('ReconnectSignalServer') )">ReconnectSignalServer</button>
+    <hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/>
+<center>
+    <br/>
+    <hr/>
+    <h1>Выключеные розетки (по умолчанию)</h1>
+    <table>
+        <tr>
+            <td>
+            </td>
+            <td>
+                <button onclick="alert( esp8266('device:PowerSocket_001') )">Подключится к устройству PowerSocket_001</button>
+            </td>
+            <td>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <button onclick="alert( esp8266('0/1') )">Рузутка 1 ВКЛ (компьютер)</button>
+            </td>
+            <td></td>
+            <td>
+                <button onclick="alert( esp8266('0/0') )">Рузутка 1 ВЫКЛ (компьютер)</button>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <button onclick="alert( esp8266('1/1') )">Рузутка 2 ВКЛ</button>
+            </td>
+            <td></td>
+            <td>
+                <button onclick="alert( esp8266('1/0') )">Рузутка 2 ВЫКЛ</button>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <button onclick="alert( esp8266('2/1') )">Рузутка 3 ВКЛ</button>
+            </td>
+            <td></td>
+            <td>
+                <button onclick="alert( esp8266('2/0') )">Рузутка 3 ВЫКЛ</button>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <button onclick="alert( esp8266('3/1') )">Рузутка 4 ВКЛ</button>
+            </td>
+            <td></td>
+            <td>
+                <button onclick="alert( esp8266('3/0') )">Рузутка 4 ВЫКЛ</button>
+            </td>
+        </tr>
+    </table>
+    <hr/>
+    <h1>Включеные розетки (по умолчанию)</h1>
+    <hr/>
+    <h2>
+        <button onclick="alert( esp8266('4/1') )">Рузутка 5 ВЫКЛ</button>
+        <button onclick="alert( esp8266('4/0') )">Рузутка 5 ВКЛ</button>
+        <button onclick="alert( esp8266('restart4') )">Рестарт 5 (Камера в доме)</button>
+        <br/>
+        <button onclick="alert( esp8266('5/1') )">Рузутка 6 ВЫКЛ</button>
+        <button onclick="alert( esp8266('5/0') )">Рузутка 6 ВКЛ</button>
+        <button onclick="alert( esp8266('restart5') )">Рестарт 6 (Уличная камера)</button>
+        <br/>
+        <button onclick="alert( esp8266('6/1') )">Рузутка 7 ВЫКЛ</button>
+        <button onclick="alert( esp8266('6/0') )">Рузутка 7 ВКЛ</button>
+        <button onclick="alert( esp8266('restart6') )">Рестарт 7</button>
+        <br/>
+        <button onclick="alert( esp8266('7/1') )">Рузутка 8 ВЫКЛ</button>
+        <button onclick="alert( esp8266('7/0') )">Рузутка 8 ВКЛ</button>
+        <button onclick="alert( esp8266('restart7') )">Рестарт 8</button>
+    </h2>
+    <!--img src="/PowerSocket/ReleDst.jpeg" width="320" height="240"/-->
+</center>
+    <hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/>
+    <hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/>
+<center>
+    <br/>
+    <hr/>
+    <h1>Выключеные розетки (по умолчанию)</h1>
+    <table>
+        <tr>
+            <td>
+            </td>
+            <td>
+                <button onclick="alert( esp8266('device:PowerSocket_002') )">Подключится к устройству PowerSocket_002</button>
+            </td>
+            <td>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <button onclick="alert( esp8266('0/1') )">Рузутка 1 ВКЛ</button>
+            </td>
+            <td></td>
+            <td>
+                <button onclick="alert( esp8266('0/0') )">Рузутка 1 ВЫКЛ</button>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <button onclick="alert( esp8266('1/1') )">Рузутка 2 ВКЛ</button>
+            </td>
+            <td></td>
+            <td>
+                <button onclick="alert( esp8266('1/0') )">Рузутка 2 ВЫКЛ</button>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <button onclick="alert( esp8266('2/1') )">Рузутка 3 ВКЛ</button>
+            </td>
+            <td></td>
+            <td>
+                <button onclick="alert( esp8266('2/0') )">Рузутка 3 ВЫКЛ</button>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <button onclick="alert( esp8266('3/1') )">Рузутка 4 ВКЛ</button>
+            </td>
+            <td></td>
+            <td>
+                <button onclick="alert( esp8266('3/0') )">Рузутка 4 ВЫКЛ</button>
+            </td>
+        </tr>
+    </table>
+    <hr/>
+    <h1>Включеные розетки (по умолчанию)</h1>
+    <hr/>
+    <h2>
+        <button onclick="alert( esp8266('4/1') )">Рузутка 5 ВЫКЛ</button>
+        <button onclick="alert( esp8266('4/0') )">Рузутка 5 ВКЛ</button>
+        <button onclick="alert( esp8266('restart4') )">Рестарт 5</button>
+        <br/>
+        <button onclick="alert( esp8266('5/1') )">Рузутка 6 ВЫКЛ</button>
+        <button onclick="alert( esp8266('5/0') )">Рузутка 6 ВКЛ</button>
+        <button onclick="alert( esp8266('restart5') )">Рестарт 6</button>
+        <br/>
+        <button onclick="alert( esp8266('6/1') )">Рузутка 7 ВЫКЛ</button>
+        <button onclick="alert( esp8266('6/0') )">Рузутка 7 ВКЛ</button>
+        <button onclick="alert( esp8266('restart6') )">Рестарт 7</button>
+        <br/>
+        <button onclick="alert( esp8266('7/1') )">Рузутка 8 ВЫКЛ</button>
+        <button onclick="alert( esp8266('7/0') )">Рузутка 8 ВКЛ</button>
+        <button onclick="alert( esp8266('restart7') )">Рестарт 8</button>
+    </h2>
+</center>
+    <hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/>
+    <hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/>
+
+    <hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/>
+    <hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/><hr/>
+<center>
+    <br/>
+    <hr/>
+    <table>
+        <tr>
+            <td>
+            </td>
+            <td>
+                <button onclick="alert( esp8266('device:Alisttom1000') )">Подключится к устройству Alisttom1000</button>
+            </td>
+            <td>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <button onclick="alert( esp8266('power') )">Power</button>
+               <br/> Дача - 868135149 HP
+               <br/> Дача - 411437084 atom1000
+
+            </td>
+            <td></td>
+            <td>
+            </td>
+        </tr>
+    </table>
+</center>
+</body>
+</html>

@@ -1,0 +1,276 @@
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <title>NETSuveillance WEB</title>
+    <style>
+        .split {
+            height: 100%;
+            width: 50%;
+            position: fixed;
+            z-index: 1;
+            top: 0;
+            overflow-x: hidden;
+            padding-top: 20px;
+        }
+
+        .left {
+            left: 0;
+            background-color: #111;
+        }
+
+        .right {
+            right: 0;
+            background-color: #111;
+        }
+    </style>
+
+    <script type="text/javascript" src="/ip_cam_dacha/ip_cam_activex.js"></script>
+    <script type="text/javascript" src="/ip_cam_dacha/config_connect_ip_cam.js"></script>
+    <script type="text/javascript">
+
+        var bCrossBrow = false;
+        var bnpCheck = false;
+        if (navigator.userAgent.indexOf('IE') < 0) {
+            var userAgent = navigator.userAgent,
+                rMsie = /(msie\s|trident.*rv:)([\w.]+)/,
+                rFirefox = /(firefox)\/([\w.]+)/,
+                rOpera = /(opera).+version\/([\w.]+)/,
+                rChrome = /(chrome)\/([\w.]+)/,
+                rSafari = /version\/([\w.]+).*(safari)/;
+            var browserMatch = uaMatch(userAgent.toLowerCase());
+            if (browserMatch.browser != "IE") {
+                bCrossBrow = true;
+            }
+
+        }
+
+        function uaMatch(ua) {
+            var match = rMsie.exec(ua);
+
+            if (match != null) {
+                return {browser: "IE", version: match[2] || "0"};
+            }
+            var match = rFirefox.exec(ua);
+            if (match != null) {
+                return {browser: match[1] || "", version: match[2] || "0"};
+            }
+            var match = rOpera.exec(ua);
+            if (match != null) {
+                return {browser: match[1] || "", version: match[2] || "0"};
+            }
+            var match = rChrome.exec(ua);
+            if (match != null) {
+                return {browser: match[1] || "", version: match[2] || "0"};
+            }
+            var match = rSafari.exec(ua);
+            if (match != null) {
+                return {browser: match[2] || "", version: match[1] || "0"};
+            }
+            if (match != null) {
+                return {browser: "", version: "0"};
+            }
+        }
+
+
+        var Download = function() {
+            window.open("/ip_cam_dacha/New_Active.exe");
+            // window.open("http://xmsecu.com:8080/ocx/New_Active.exe");
+        }
+        var DownloadFF = function() {
+            window.open("/ip_cam_dacha/Firefox_Setup_41.0.exe");
+        }
+        var DetectActiveX = function() {
+            try {
+                var comActiveX = new ActiveXObject("WEB.WebCtrl.1");
+                comActiveX = null;
+            } catch (e) {
+                if (bCrossBrow) {
+                    return true;
+                };
+                return false;
+            }
+            return true;
+        }
+
+
+        // config_connect_ip_cam.js - содержить информацию для подключения к IP камере
+        var ipaddress = document.location.hostname;
+        var hostport = 34567;
+        var serverIP = "xmeye.net";
+        var serverPort = 8000;
+
+        var runViewCam1 = function(){
+             ocx1.SetSpecialParamEx2(2, "Russian", 0, 0);  // выбор языка
+             if (0 < ocx1.SetSpecialParamEx2(1, serverIP, serverPort, "")) { }
+             //var res = ocx1.Login(ipaddress, hostport, username, password);
+              var res = ocx1.Login(mac1, hostport, username, password);
+             if (res > 0) {
+                ocx1.PlayAll();
+                // ocx.StartRealPlay(1,0,0);
+                // if (ocx.StartRealPlay(0,1,1)){
+                //    alert("OK");
+                // }
+                // if (ocx1.StartRealPlay(0,1,0)){
+                //   alert("OK");
+                // }
+             }else{
+                alert("error: "+res);
+             }
+        }
+
+        var runViewCam2 = function(){
+             // if (!DetectActiveX()) {
+             //    return;
+             // }
+             ocx2.SetSpecialParamEx2(2, "Russian", 0, 0);  // выбор языка
+             if (0 < ocx2.SetSpecialParamEx2(1, serverIP, serverPort, "")) { }
+
+             // var res = ocx1.Login(ipaddress, hostport, username, password);
+             var res2 = ocx2.Login(mac2, hostport, username, password);
+             if (res2 > 0) { ocx2.PlayAll();   }else{ alert("error: "+res); }
+        }
+
+        window.addEvent('domready', function () {
+             if (!DetectActiveX()) {
+                return;
+             }
+
+
+            /*
+            ocx1.SetSpecialParamEx2(2, "Russian", 0, 0);  // выбор языка
+            ocx2.SetSpecialParamEx2(2, "Russian", 0, 0);  // выбор языка
+            if (!DetectActiveX()) {
+                return;
+            } else {
+                if (0 < ocx1.SetSpecialParamEx2(1, serverIP, serverPort, "")) { }
+                if (0 < ocx2.SetSpecialParamEx2(1, serverIP, serverPort, "")) { }
+                // runViewCam1();
+            }
+            */
+        });
+
+    </script>
+
+</head>
+<body>
+
+<div id="pageerror" style="width: 200px; height: 20px; display: none; margin-left: auto;
+        margin-right: auto; margin-top: 350px;">
+    <span id="errormessage" style="color: Black; font-size: 16px;"></span>
+</div>
+<br/><a href="https://xmeye.net/main">Products webpage Besder IP CAM (xmeye.net)</a>
+<br/><a href="https://ftp.mozilla.org/pub/firefox/releases/41.0/win32-EME-free/ru/Firefox%20Setup%2041.0.exe">Download
+    FireFox 41.0</a>
+<br/>
+<div class="split left">
+    <button id="dlbutton" onclick="Download();">Download New_Active.exe</button>
+    <button id="FFdown" onclick="DownloadFF();">Download Firefox Setup 41.0.exe</button>
+     <br/>
+    <button onclick="runViewCam1();">Включить трансляцию улица</button>
+    <table style="text-align: center;">
+        <tr>
+            <td>
+                <button href="javascript:;" onmousedown="ocx1.PTZCtrlStart(-1,4,parseInt($('ps').value))" onmouseup="ocx1.PTZCtrlStop(-1,4,parseInt($('ps').value))" >LT </button>
+            </td>
+            <td>
+                <button href="javascript:;" onmousedown="ocx1.PTZCtrlStart(-1,0,parseInt($('ps').value))" onmouseup="ocx1.PTZCtrlStop(-1,0,parseInt($('ps').value))" >T </button>
+            </td>
+            <td>
+                <button href="javascript:;" onmousedown="ocx1.PTZCtrlStart(-1,6,parseInt($('ps').value))" onmouseup="ocx1.PTZCtrlStop(-1,6,parseInt($('ps').value))" >RT </button>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <button href="javascript:;" onmousedown="ocx1.PTZCtrlStart(-1,2,parseInt($('ps').value))" onmouseup="ocx1.PTZCtrlStop(-1,2,parseInt($('ps').value))" >L </button>
+            </td>
+            <td>
+                <button href="javascript:;" onclick="ocx1.OnBntEntermenu();" >C </button>
+            </td>
+            <td>
+                <button href="javascript:;" onmousedown="ocx1.PTZCtrlStart(-1,3,parseInt($('ps').value))" onmouseup="ocx1.PTZCtrlStop(-1,3,parseInt($('ps').value))" >R </button>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <button href="javascript:;" onmousedown="ocx1.PTZCtrlStart(-1,5,parseInt($('ps').value))" onmouseup="ocx1.PTZCtrlStop(-1,5,parseInt($('ps').value))" >LB </button>
+            </td>
+            <td>
+                <button href="javascript:;" onmousedown="ocx1.PTZCtrlStart(-1,1,parseInt($('ps').value))" onmouseup="ocx1.PTZCtrlStop(-1,1,parseInt($('ps').value))" >CB </button>
+            </td>
+            <td>
+                <button href="javascript:;" onmousedown="ocx1.PTZCtrlStart(-1,7,parseInt($('ps').value))" onmouseup="ocx1.PTZCtrlStop(-1,7,parseInt($('ps').value))" >RB </button>
+            </td>
+        </tr>
+    </table>
+
+    <button onclick="ocx1.CloseSound(1);" style="color: blue;">Sound off</button>
+    <button onclick="ocx1.OpenSound(-1);" style="color: blue;">Sound on</button>
+
+    <button onclick="ocx1.StartTalk();" style="color: blue;">Mic On</button>
+    <button onclick="ocx1.StopTalk();" style="color: blue;">Mic Off</button>
+
+    <button onclick="ocx1.Fullscreen(true);" style="color: blue;">Fullscreen</button>
+    <button onclick="ocx1.ShowDeviceConfig();" style="color: blue;">Setup IpCam</button>
+    <button onclick="ocx1.ShowClientConfig();" style="color: blue;">Config IpCam</button>
+    <button onclick="ocx1.Logout();" style="color: blue;">Logout</button>
+
+    <div style="width: 910px; height: 600px;border: 4px double black; display:inline-block;">
+        <object id="ocx1" type="application/nptest-plugin" height="600" width="900" style="position:absolute;left:10px;"></object>
+    </div>
+</div>
+<div class="split right">
+    <br/>
+    <button onclick="runViewCam2();">Включить трансляцию дом</button>
+    <table style="text-align: center;">
+        <tr>
+            <td>
+                <button href="javascript:;" onmousedown="ocx2.PTZCtrlStart(-1,4,parseInt($('ps').value))" onmouseup="ocx2.PTZCtrlStop(-1,4,parseInt($('ps').value))" >LT </button>
+            </td>
+            <td>
+                <button href="javascript:;" onmousedown="ocx2.PTZCtrlStart(-1,0,parseInt($('ps').value))" onmouseup="ocx2.PTZCtrlStop(-1,0,parseInt($('ps').value))" >T </button>
+            </td>
+            <td>
+                <button href="javascript:;" onmousedown="ocx2.PTZCtrlStart(-1,6,parseInt($('ps').value))" onmouseup="ocx2.PTZCtrlStop(-1,6,parseInt($('ps').value))" >RT </button>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <button href="javascript:;" onmousedown="ocx2.PTZCtrlStart(-1,2,parseInt($('ps').value))" onmouseup="ocx2.PTZCtrlStop(-1,2,parseInt($('ps').value))" >L </button>
+            </td>
+            <td>
+                <button href="javascript:;" onclick="ocx2.OnBntEntermenu();" >C </button>
+            </td>
+            <td>
+                <button href="javascript:;" onmousedown="ocx2.PTZCtrlStart(-1,3,parseInt($('ps').value))" onmouseup="ocx2.PTZCtrlStop(-1,3,parseInt($('ps').value))" >R </button>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <button href="javascript:;" onmousedown="ocx2.PTZCtrlStart(-1,5,parseInt($('ps').value))" onmouseup="ocx2.PTZCtrlStop(-1,5,parseInt($('ps').value))" >LB </button>
+            </td>
+            <td>
+                <button href="javascript:;" onmousedown="ocx2.PTZCtrlStart(-1,1,parseInt($('ps').value))" onmouseup="ocx2.PTZCtrlStop(-1,1,parseInt($('ps').value))" >CB </button>
+            </td>
+            <td>
+                <button href="javascript:;" onmousedown="ocx2.PTZCtrlStart(-1,7,parseInt($('ps').value))" onmouseup="ocx2.PTZCtrlStop(-1,7,parseInt($('ps').value))" >RB </button>
+            </td>
+        </tr>
+    </table>
+    <button onclick="ocx2.CloseSound(1);" style="color: blue;">Sound off</button>
+    <button onclick="ocx2.OpenSound(-1);" style="color: blue;">Sound on</button>
+    <button onclick="ocx2.StartTalk();" style="color: blue;">Mic On</button>
+    <button onclick="ocx2.StopTalk();" style="color: blue;">Mic Off</button>
+    <button onclick="ocx2.Fullscreen(true);" style="color: blue;">Fullscreen</button>
+    <button onclick="ocx2.ShowDeviceConfig();" style="color: blue;">Setup IpCam</button>
+    <button onclick="ocx2.ShowClientConfig();" style="color: blue;">Config IpCam</button>
+    <button onclick="ocx2.Logout();" style="color: blue;">Logout</button>
+    <div style="width: 910px; height: 600px;border: 4px double black; display:inline-block;">
+        <object id="ocx2" type="application/nptest-plugin" height="600" width="900" style="position:absolute;left:10px;"></object>
+    </div>
+</div>
+
+<br/>
+<input class="inputyt" id="ps" value="5" maxlength="3" onkeyup="value=value.replace(/[^\d]/g,'')"
+       onbeforepaste="clipboardData.setData('text',clipboardData.getData('text').replace(/[^\d]/g,''))" type="text">
+</body>
+</html>

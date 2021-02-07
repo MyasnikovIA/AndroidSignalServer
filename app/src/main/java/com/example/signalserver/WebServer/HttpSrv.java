@@ -9,6 +9,7 @@ import android.content.pm.PackageManager;
 import android.graphics.drawable.Drawable;
 import android.os.PowerManager;
 import android.telephony.TelephonyManager;
+import android.webkit.MimeTypeMap;
 import android.widget.Toast;
 
 import androidx.core.app.ActivityCompat;
@@ -28,10 +29,13 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintStream;
+import java.math.BigInteger;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.URLDecoder;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Hashtable;
@@ -53,6 +57,7 @@ public class HttpSrv {
     private boolean process = false;
     private static Context context;
     private PackageManager packageManager = null;
+    public static Hashtable<String, Object> sessionGlobal = new Hashtable<String, Object>(10, (float) 0.5);
 
     public HttpSrv(Context context) {
         this.context = context;
@@ -83,7 +88,6 @@ public class HttpSrv {
                 } catch (Throwable ex) {
                     Logger.getLogger(HttpSrv.class.getName()).log(Level.SEVERE, null, ex);
                 }
-
             }
         });
         myThready.start();    //Запуск потока
@@ -111,6 +115,7 @@ public class HttpSrv {
         private Socket socket;
         private InputStream is;
         private OutputStream os;
+        private String Adress = "";
 
         private SocketProcessor(Socket socket) throws Throwable {
             this.socket = socket;
@@ -119,7 +124,7 @@ public class HttpSrv {
             this.os = socket.getOutputStream();
             Json.clear();
             JsonParam.clear();
-            String Adress = socket.getRemoteSocketAddress().toString();
+            Adress = socket.getRemoteSocketAddress().toString();
             Json.put("RemoteIPAdress", Adress);
             Adress = Adress.split(":")[0];
             Adress = Adress.replace("/", "");
@@ -173,6 +178,8 @@ public class HttpSrv {
             int numLine = 0;
             String DevName = "";
             String DevNameTmp = "";
+            String DevNameSocket = "";
+            String DevPasseSocket = "";
             String deviceName = "";
             String PassText = "";
             String PassTextTmp = "";
@@ -279,7 +286,11 @@ public class HttpSrv {
                 }
                 // Если запрос из ВЭБ браузера, тогда выводим HTML страницу
                 if ((DevNameTmp.indexOf("GET ") != -1) && (DevNameTmp.indexOf("HTTP/1.1") != -1)) {
-                    drawHTML(DevNameTmp);
+                    drawHTML(DevNameTmp, Json);
+                    break;
+                }
+                if ((DevNameTmp.indexOf("POST ") != -1) && (DevNameTmp.indexOf("HTTP/1.1") != -1)) {
+                    drawPostHTML(DevNameTmp, Json, POST);
                     break;
                 }
                 // запоменаем имя устройства/парольбьтбюьт
@@ -298,11 +309,14 @@ public class HttpSrv {
                     DevicePass.put(DevNameTmp, PassTextTmp);
                     DeviceSocket.put(DevNameTmp, socket);
                     DeviceRouterIp.put(DevNameTmp, RouterIpTmp);
+                    DevNameSocket = DevNameTmp;
+                    DevPasseSocket = PassTextTmp;
                     DevNameTmp = "";
                     os.write(("DevName=" + DevName + "\r\n").getBytes());
                     os.write(("RouterIpTmp=" + RouterIpTmp + "\r\n").getBytes());
                     continue;
                 }
+
 
                 // получить список подключенных устройств
                 if (Json.toString().indexOf("{list=list}") != -1) {
@@ -352,14 +366,44 @@ public class HttpSrv {
                 // отправляем сообщение другому устройству текст
                 if ((deviceName.length() > 0) && (Json.containsKey("msg") == true)) {
                     if (DeviceIO.containsKey(deviceName) == true) {
-                        OutputStream osDst = DeviceIO.get(deviceName);
-                        String PassTextTMP = DevicePass.get(deviceName);
-                        if (PassText.equals(PassTextTMP) == false) {
-                            os.write(("\r\nerror pass:" + deviceName + "  " + PassTextTMP.length() + "\r\n").getBytes());
-                            continue;
+                        try {
+                            OutputStream osDst = DeviceIO.get(deviceName);
+                            String PassTextTMP = DevicePass.get(deviceName);
+                            if (PassText.equals(PassTextTMP) == false) {
+                                os.write(("\r\nerror pass:" + deviceName + "  " + PassTextTMP.length() + "\r\n").getBytes());
+                                continue;
+                            }
+                            osDst.write(Json.get("msg").toString().getBytes());
+                            // osDst.write(Json.get("msg").toString().getBytes());
+                            os.write(("\r\nsend:" + deviceName + "\r\n").getBytes());
+                        } catch (Exception e) {
+                            rebootOneDevice(deviceName);
                         }
-                        osDst.write(Json.get("msg").toString().getBytes());
-                        os.write(("\r\nsend:" + deviceName + "\r\n").getBytes());
+                    } else {
+                        //DeviceIO.remove(DevName);
+                        os.write(("\r\nno device\r\n").getBytes());
+                    }
+                    continue;
+                }
+
+                if (Json.toString().indexOf("{ping=ping}") != -1) {
+                    os.write(("ping\r\n").getBytes());
+                    continue;
+                }
+
+                if (Json.toString().indexOf("{from=from}") != -1) {
+                    if (DeviceIO.containsKey(deviceName) == true) {
+                        try {
+                            OutputStream osDst = DeviceIO.get(deviceName);
+                            if (DevPasseSocket.length()>0){
+                                osDst.write(("from:" + DevNameSocket + ":" + DevPasseSocket + "\r\n").getBytes());
+                            } else {
+                                osDst.write(("from:" + DevNameSocket + "\r\n").getBytes());
+                            }
+                            os.write(("\r\nsend:" + deviceName + "\r\n").getBytes());
+                        } catch (Exception e) {
+                            rebootOneDevice(deviceName);
+                        }
                     } else {
                         //DeviceIO.remove(DevName);
                         os.write(("\r\nno device\r\n").getBytes());
@@ -370,14 +414,18 @@ public class HttpSrv {
                 // отправляем сообщение другому устройству POST
                 if ((deviceName.length() > 0) && (isPost == true)) {
                     if (DeviceIO.containsKey(deviceName) == true) {
-                        OutputStream osDst = DeviceIO.get(deviceName);
-                        String PassTextTMP = DevicePass.get(deviceName);
-                        if (PassText.equals(PassTextTMP) == false) {
-                            os.write(("\r\nerror pass:" + deviceName + "  " + PassTextTMP.length() + "\r\n").getBytes());
-                            continue;
+                        try {
+                            OutputStream osDst = DeviceIO.get(deviceName);
+                            String PassTextTMP = DevicePass.get(deviceName);
+                            if (PassText.equals(PassTextTMP) == false) {
+                                os.write(("\r\nerror pass:" + deviceName + "  " + PassTextTMP.length() + "\r\n").getBytes());
+                                continue;
+                            }
+                            osDst.write(POST);
+                            os.write(("\r\nsend:" + deviceName + "\r\n").getBytes());
+                        } catch (Exception e) {
+                            rebootOneDevice(deviceName);
                         }
-                        osDst.write(POST);
-                        os.write(("\r\nsend:" + deviceName + "\r\n").getBytes());
                     } else {
                         //DeviceIO.remove(DevName);
                         os.write(("\r\nno device\r\n").getBytes());
@@ -388,14 +436,18 @@ public class HttpSrv {
                 // [CDS]shutdownInput in read
                 if (deviceName.length() > 0) {
                     if (DeviceIO.containsKey(deviceName) == true) {
-                        OutputStream osDst = DeviceIO.get(deviceName);
-                        String PassTextTMP = DevicePass.get(deviceName);
-                        if (PassText.equals(PassTextTMP) == false) {
-                            os.write(("\r\nerror pass:" + deviceName + "  " + PassTextTMP.length() + "\r\n").getBytes());
-                            continue;
+                        try {
+                            OutputStream osDst = DeviceIO.get(deviceName);
+                            String PassTextTMP = DevicePass.get(deviceName);
+                            if (PassText.equals(PassTextTMP) == false) {
+                                os.write(("\r\nerror pass:" + deviceName + "  " + PassTextTMP.length() + "\r\n").getBytes());
+                                continue;
+                            }
+                            osDst.write(bufferRaw.toByteArray());
+                            os.write(("\r\nsend:" + deviceName + "\r\n").getBytes());
+                        } catch (Exception e) {
+                            rebootOneDevice(deviceName);
                         }
-                        osDst.write(bufferRaw.toByteArray());
-                        os.write(("\r\nsend:" + deviceName + "\r\n").getBytes());
                     } else {
                         //DeviceIO.remove(DevName);
                         os.write(("\r\nno device\r\n").getBytes());
@@ -495,8 +547,289 @@ public class HttpSrv {
             }
         }
 
+        public static String getMimeType(String url) {
+            String type = null;
+            String extension = MimeTypeMap.getFileExtensionFromUrl(url);
+            if (extension != null) {
+                type = MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension);
+            }
+            return type;
+        }
 
-        private void drawHTML(String DevNameTmp) throws IOException {
+        /**
+         * Закодировать строку кодировкой MD5
+         *
+         * @param input
+         * @return
+         */
+        private static String getMD5(String input) {
+            try {
+                MessageDigest md = MessageDigest.getInstance("MD5");
+                byte[] messageDigest = md.digest(input.getBytes());
+                BigInteger number = new BigInteger(1, messageDigest);
+                String hashtext = number.toString(16);
+                while (hashtext.length() < 32) {
+                    hashtext = "0" + hashtext;
+                }
+                return hashtext;
+            } catch (NoSuchAlgorithmException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        /**
+         * Создание иденификатора подключаемого компьютера  и сохранение его в куках клиенской машины
+         */
+        private Hashtable<String, String> CreateCompId(Hashtable<String, Object> jsonParam) {
+            String IDcomp = "";
+            Hashtable<String, String> session = null;
+            IDcomp = getMD5(Adress);
+            if (sessionGlobal.containsKey(IDcomp) == true) {
+                session = (Hashtable<String, String>) sessionGlobal.get(IDcomp);
+            } else {
+                session = new Hashtable<String, String>(10, (float) 0.5);
+                session.put("ID", IDcomp);
+                sessionGlobal.put(IDcomp, session);
+            }
+            return session;
+        }
+
+
+        /**
+         * Обработка POST запроса
+         *
+         * @param DevNameTmp
+         * @param jsonParam
+         * @param POST
+         * @throws IOException
+         */
+        private void drawPostHTML(String DevNameTmp, Hashtable<String, Object> jsonParam, byte[] POST) throws IOException {
+            String path = DevNameTmp.substring(DevNameTmp.indexOf("POST /") + "POST /".length(), DevNameTmp.length() - " HTTP/1.1".length());
+            if (path.length() == 0) {
+                path = "index.html";
+            }
+            String ext = getMimeType(path);
+            Hashtable<String, String> session = CreateCompId(jsonParam);
+            try {
+                InputStream stream = context.getAssets().open(path);
+                int size = stream.available();
+                byte[] buffer = new byte[size];
+                stream.read(buffer);
+                stream.close();
+                os.write("HTTP/1.1 200 OK\r\n".getBytes());
+                os.write(("Content-Type: " + ext + "; charset=utf-8\r\n").getBytes());
+                os.write("Connection: close\r\n".getBytes());
+                os.write("Server: HTMLserver\r\n".getBytes());
+                os.write("\r\n".getBytes());
+                os.write(buffer);
+                os.flush();
+                return;
+            } catch (IOException e) {
+                // файл не найден FileNonFound
+            }
+
+            if (DevNameTmp.indexOf("POST /cmd:") != -1) {
+                String msg = DevNameTmp.substring("POST /cmd:".length(), DevNameTmp.length() - " HTTP/1.1".length());
+                if (msg.indexOf(":") != -1) {
+                    String nam = msg.split(":")[0];
+                    String val = msg.split(":")[1];
+                    session.put(nam, val);
+                } else {
+                    session.put("msg", msg);
+                }
+                String deviceName = "";
+                String PassText = "";
+                if (session.containsKey("device") == true) {
+                    deviceName = session.get("device").toString();
+                }
+                if (session.containsKey("pass") == true) {
+                    PassText = session.get("pass").toString();
+                }
+                os.write("HTTP/1.1 200 OK\r\n".getBytes());
+                os.write(("Content-Type: " + ext + "; charset=utf-8\r\n").getBytes());
+                os.write("Connection: close\r\n".getBytes());
+                os.write("Server: HTMLserver\r\n".getBytes());
+                os.write("\r\n".getBytes());
+                if (deviceName.length() > 0) {
+                    if (DeviceIO.containsKey(deviceName) == true) {
+                        OutputStream osDst = DeviceIO.get(deviceName);
+                        String PassTextTMP = DevicePass.get(deviceName);
+                        if (PassText.equals(PassTextTMP) == false) {
+                            os.write(("\r\nerror pass:" + deviceName + "  " + PassTextTMP.length() + "\r\n").getBytes());
+                            os.flush();
+                            return;
+                        } else {
+                            osDst.write(POST);
+                            os.write(("\r\nsend:" + deviceName + "\r\n").getBytes());
+                            os.flush();
+                            return;
+                        }
+                    } else {
+                        //DeviceIO.remove(DevName);
+                        os.write(("\r\nno device\r\n").getBytes());
+                        os.flush();
+                        return;
+                    }
+                }
+                os.write("\r\ncmd:\r\n".getBytes());
+                os.write(POST);
+                os.flush();
+                return;
+            }
+
+            // дописать обработку POST запроса
+            os.write("HTTP/1.1 200 OK\r\n".getBytes());
+            os.write(("Content-Type: " + ext + "; charset=utf-8\r\n").getBytes());
+            os.write("Connection: close\r\n".getBytes());
+            os.write("Server: HTMLserver\r\n".getBytes());
+            os.write("\r\n".getBytes());
+            os.write("\r\nPOST\r\n".getBytes());
+            os.write(POST);
+            os.flush();
+            // ---------------------------------
+        }
+
+        /**
+         * Обработка GET запроса
+         *
+         * @param DevNameTmp
+         * @param jsonParam
+         * @throws IOException
+         */
+        private void drawHTML(String DevNameTmp, Hashtable<String, Object> jsonParam) throws IOException {
+            String path = DevNameTmp.substring(DevNameTmp.indexOf("GET /") + "GET /".length(), DevNameTmp.length() - " HTTP/1.1".length());
+            if (path.length() == 0) {
+                path = "index.html";
+            }
+            String ext = getMimeType(path);
+            Hashtable<String, String> session = CreateCompId(jsonParam);
+
+            try {
+                InputStream stream = context.getAssets().open(path);
+                int size = stream.available();
+                byte[] buffer = new byte[size];
+                stream.read(buffer);
+                stream.close();
+                os.write("HTTP/1.1 200 OK\r\n".getBytes());
+                os.write(("Content-Type: " + ext + "; charset=utf-8\r\n").getBytes());
+                os.write("Connection: close\r\n".getBytes());
+                os.write("Server: HTMLserver\r\n".getBytes());
+                os.write("\r\n".getBytes());
+                os.write(buffer);
+                os.flush();
+                return;
+            } catch (IOException e) {
+                // файл не найден FileNonFound
+            }
+            /// показать список установленых программ
+            if (DevNameTmp.indexOf("GET /cmd:") != -1) {
+                String msg = DevNameTmp.substring("GET /cmd:".length(), DevNameTmp.length() - " HTTP/1.1".length());
+                if (msg.indexOf(":") != -1) {
+                    String nam = msg.split(":")[0];
+                    String val = msg.split(":")[1];
+                    session.put(nam, val);
+                } else {
+                    session.put("msg", msg);
+                }
+                String deviceName = "";
+                String PassText = "";
+
+                if (session.containsKey("device") == true) {
+                    deviceName = session.get("device").toString();
+                }
+                if (session.containsKey("pass") == true) {
+                    PassText = session.get("pass").toString();
+                }
+
+                os.write("HTTP/1.1 200 OK\r\n".getBytes());
+                os.write("Content-Type: application/json; charset=utf-8\r\n".getBytes());
+                os.write("Connection: close\r\n".getBytes());
+                os.write("Server: HTMLserver\r\n".getBytes());
+                os.write("\r\n".getBytes());
+
+                if (deviceName.length() > 0) {
+                    if (DeviceIO.containsKey(deviceName) == true) {
+                        OutputStream osDst = DeviceIO.get(deviceName);
+                        String PassTextTMP = DevicePass.get(deviceName);
+                        if (PassText.equals(PassTextTMP) == false) {
+                            os.write(("\r\nerror pass:" + deviceName + "  " + PassTextTMP.length() + "\r\n").getBytes());
+                            os.flush();
+                            return;
+                        } else {
+                            osDst.write(msg.getBytes());
+                            os.write(("\r\nsend:" + deviceName + "\r\n").getBytes());
+                            os.flush();
+                            return;
+                        }
+                    } else {
+                        //DeviceIO.remove(DevName);
+                        os.write(("\r\nno device\r\n").getBytes());
+                        os.flush();
+                        return;
+                    }
+                }
+                os.write(("\r\n" + msg).getBytes());
+                os.write(("\r\n session " + session).getBytes());
+                os.write(("\r\n jsonParam " + jsonParam).getBytes());
+                os.write(("\r\n Adress " + Adress).getBytes());
+                os.flush();
+                return;
+            }
+
+
+            // список подключенных устройств
+            if (DevNameTmp.indexOf("GET /device.json") != -1) {
+                // показать список подключенных устройств
+                os.write("HTTP/1.1 200 OK\r\n".getBytes());
+                // os.write("Content-Type: text/plain; charset=utf-8\r\n".getBytes());
+                os.write("Content-Type: application/json; charset=utf-8\r\n".getBytes());
+                os.write("Connection: close\r\n".getBytes());
+                os.write("Server: HTMLserver\r\n".getBytes());
+                os.write("\r\n".getBytes());
+                os.flush();
+                try {
+                    JSONArray jsonAr = new JSONArray();
+                    for (Object key : DeviceIO.keySet()) {
+                        JSONObject jsonDev = new JSONObject();
+                        jsonDev.put("devname", key.toString());
+                        jsonDev.put("routerip", DeviceRouterIp.get(key));
+                        Socket soc = DeviceSocket.get(key);
+                        jsonDev.put("isConnected", soc.isClosed());
+                        jsonAr.put(jsonDev);
+                    }
+                    jsonParam.put("device", jsonAr);
+                    //-----------------------------------------------------
+                    TelephonyManager telephonyManager = (TelephonyManager) context.getSystemService(context.TELEPHONY_SERVICE);
+                    String devicIMEI = telephonyManager.getDeviceId();
+                    jsonParam.put("devicIMEI", devicIMEI);
+                } catch (JSONException e) {
+                    os.write("-ERROR-\r\n".getBytes());
+                }
+                os.write((jsonParam + "").getBytes());
+                return;
+            }
+
+            /*
+            os.write("HTTP/1.1 200 OK\r\n".getBytes());
+            os.write("Content-Type: text/html; charset=utf-8\r\n".getBytes());
+            os.write("Connection: close\r\n".getBytes());
+            os.write("Server: HTMLserver\r\n".getBytes());
+            os.write("\r\n".getBytes());
+            os.flush();
+            os.write(("<br/><a  target=\"_blank\"  href=\"device.json\">Device</a> ").getBytes());
+            os.write(("<br/><a  target=\"_blank\"  href=\"app.json\">AppList</a> ").getBytes());
+            os.write(("<br/><hr/>").getBytes());
+            packageManager = context.getPackageManager();
+            List<ApplicationInfo> listApp = packageManager.getInstalledApplications(PackageManager.GET_META_DATA);
+            for (ApplicationInfo appInf : listApp) {
+                String packTxt = appInf.loadLabel(packageManager).toString();
+                String packName = appInf.packageName.toString();
+                os.write(("<br/><a  target=\"_blank\"  href=\"/run:" + packName + "\">" + packTxt + "</a> ").getBytes());
+            }
+            */
+        }
+
+        private void drawHTMLOld(String DevNameTmp) throws IOException {
             JSONObject json = new JSONObject();
 
             if (DevNameTmp.indexOf("GET /run:") != -1) {
@@ -602,9 +935,9 @@ public class HttpSrv {
             packageManager = context.getPackageManager();
             List<ApplicationInfo> listApp = packageManager.getInstalledApplications(PackageManager.GET_META_DATA);
             for (ApplicationInfo appInf : listApp) {
-                 String packTxt = appInf.loadLabel(packageManager).toString();
-                  String packName = appInf.packageName.toString();
-                  os.write(("<br/><a  target=\"_blank\"  href=\"/run:"+packName+"\">"+packTxt+"</a> ").getBytes());
+                String packTxt = appInf.loadLabel(packageManager).toString();
+                String packName = appInf.packageName.toString();
+                os.write(("<br/><a  target=\"_blank\"  href=\"/run:" + packName + "\">" + packTxt + "</a> ").getBytes());
             }
         }
     }
