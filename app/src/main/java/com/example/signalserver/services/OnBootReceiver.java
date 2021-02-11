@@ -13,10 +13,12 @@ public class OnBootReceiver extends BroadcastReceiver {
         if (Intent.ACTION_BOOT_COMPLETED.equals(intent.getAction())) {
             //  запуск сервиса
             // context.startService(new Intent(context, ServiceExample.class));
+
             Intent i = new Intent(context, MainActivity.class);
             i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             context.startActivity(i);
             Toast.makeText(context, "Boot Signal Server", Toast.LENGTH_SHORT).show();
+
         }
     }
 

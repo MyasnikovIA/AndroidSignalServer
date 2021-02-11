@@ -26,7 +26,7 @@ public class ServiceExample extends Service {
 
         boolean onConnect = false;
         String ipAddress = "";
-
+         /*
         // Подключение к WIFI точке деоступа
         WifiConfiguration wifiConfig = new WifiConfiguration();
         WifiManager wifiManager = (WifiManager) getApplicationContext().getSystemService(WIFI_SERVICE);
@@ -51,8 +51,10 @@ public class ServiceExample extends Service {
             }
             pause(3000); // пауза 3 секунды
         }
+        */
         web = new HttpSrv(getApplicationContext());
         web.Start("8266");
+        Toast.makeText(getApplicationContext(), "Boot Signal Server", Toast.LENGTH_SHORT).show();
     }
 
 

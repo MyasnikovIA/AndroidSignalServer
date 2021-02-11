@@ -8,8 +8,10 @@ import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.os.Bundle;
+import android.os.PowerManager;
 import android.text.format.Formatter;
 import android.view.View;
+import android.view.WindowManager;
 import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -24,13 +26,17 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         TextView text = (TextView) findViewById(R.id.textView);
+        //getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+
+        PowerManager powerManager = (PowerManager) getSystemService(POWER_SERVICE);
+        PowerManager.WakeLock wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK,"MyApp::MyWakelockTag");
+        wakeLock.acquire();
 
         // Разблокировать экран
         KeyguardManager keyguardManager = (KeyguardManager) getSystemService(Activity.KEYGUARD_SERVICE);
         KeyguardManager.KeyguardLock lock = keyguardManager.newKeyguardLock(KEYGUARD_SERVICE);
         lock.disableKeyguard();
 
-        // ---------------------
         boolean onConnect = false;
         String ipAddress = "";
 
@@ -48,7 +54,6 @@ public class MainActivity extends AppCompatActivity {
         int netId = wifiManager.addNetwork(wifiConfig);
         wifiManager.enableNetwork(netId, true);
         wifiManager.reconnect();
-        // ------------------------------------------
         while (onConnect == false) {
             WifiInfo info = wifiManager.getConnectionInfo();
             int ip = info.getIpAddress();
@@ -68,6 +73,7 @@ public class MainActivity extends AppCompatActivity {
         HttpSrv web = new HttpSrv(getApplicationContext());
         web.Start("8266");
         // getApplicationContext().startService(new Intent(getApplicationContext(), ServiceExample.class));
+        // this.finishAffinity(); // закрыть окно приложения
     }
 
     public static void pause(int ms) {
@@ -82,11 +88,11 @@ public class MainActivity extends AppCompatActivity {
         WifiManager wifiMgr1 = (WifiManager) getApplicationContext().getSystemService(WIFI_SERVICE);
         WifiInfo wifiInfo1 = wifiMgr1.getConnectionInfo();
         int ip = wifiInfo1.getIpAddress();
-        // ------------------------------------------------
+
         String ipAddress = Formatter.formatIpAddress(ip);
         TextView text = (TextView) findViewById(R.id.textView);
         text.setText(ipAddress);
-        // ------------------------------------------------
+
         Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse("http://" + ipAddress + ":8266"));
         startActivity(browserIntent);
     }
